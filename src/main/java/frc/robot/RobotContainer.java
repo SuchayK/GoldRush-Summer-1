@@ -51,9 +51,51 @@ public class RobotContainer {
    */
   public RobotContainer() {
     // Configure the button bindings
-    
+    configureButtonBindings();
+    drivetrainSubsystem.setDefaultCommand(driveWithJoystickCommand);
+
+    chooser.addOption("Middle", loadPathplannerTrajectoryToRamseteCommand(
+        "C:/Users/jhsgo/OneDrive/Desktop/2023 Master Projects/Testing/src/main/deploy/deploy/pathplanner/generatedJSON/Middle.wpilib.json",
+        true));
+    chooser.addOption("straight", loadPathplannerTrajectoryToRamseteCommand(
+        "C:/Users/jhsgo/OneDrive/Desktop/2023 Master Projects/Testing/src/main/deploy/deploy/pathplanner/generatedJSON/Test.wpilib.json",
+        true));
+
+    Shuffleboard.getTab("Autonomous").add(chooser);
+
   }
 
+  public Command loadPathplannerTrajectoryToRamseteCommand(String filename, boolean resetOdomtry) {
+    Trajectory trajectory;
+
+    try {
+      Path trajectoryPath = Filesystem.getDeployDirectory().toPath().resolve(filename);
+      trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryPath);
+    } catch (IOException exception) {
+      DriverStation.reportError("Unable to open trajectory" + filename, exception.getStackTrace());
+      //System.out.println("Unable to read from file " + filename);
+      return new InstantCommand();
+    }
+    // Tries to get some information from a file - J
+
+    RamseteCommand ramseteCommand = new RamseteCommand(trajectory, drivetrainSubsystem::getPose,
+        new RamseteController(DriveTrainConstants.kRamseteB, DriveTrainConstants.kRamseteZeta),
+        new SimpleMotorFeedforward(DriveTrainConstants.ksVolts, DriveTrainConstants.kvVoltSecondsPerMeter,
+            DriveTrainConstants.kaVoltSecondsSquaredPerMeter),
+        DriveTrainConstants.kDriveKinematics, drivetrainSubsystem::getWheelSpeeds,
+        new PIDController(DriveTrainConstants.kPDriveVel, 0, 0),
+        new PIDController(DriveTrainConstants.kPDriveVel, 0, 0), drivetrainSubsystem::tankDriveVolts,
+        drivetrainSubsystem);
+        // I assume something for getting the robot to go in the right direction with PID - J
+
+    if (resetOdomtry) {
+      return new SequentialCommandGroup(
+          new InstantCommand(() -> drivetrainSubsystem.resetOdometry(trajectory.getInitialPose())), ramseteCommand);
+    } else {
+      return ramseteCommand;
+    }
+
+  }
 
   /**
    * Use this method to define your button->command mappings. Buttons can be
