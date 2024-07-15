@@ -20,7 +20,6 @@ import frc.robot.subsystems.DrivetrainSubsystem;
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
-
   private RobotContainer m_robotContainer;
 
   /**
@@ -63,7 +62,8 @@ public class Robot extends TimedRobot {
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
     
     m_robotContainer.getDriveTrainSubsystem();
-
+    DrivetrainSubsystem.zeroHeading();
+    m_robotContainer.getDriveTrainSubsystem().resetEncoders();
 
     // schedule the autonomous command (example)
     if (m_autonomousCommand != null) {
@@ -79,6 +79,8 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
     
     m_robotContainer.getDriveTrainSubsystem();
+    DrivetrainSubsystem.zeroHeading();
+    m_robotContainer.getDriveTrainSubsystem().resetEncoders();
     // This makes sure that the autonomous stops running when
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
@@ -87,20 +89,20 @@ public class Robot extends TimedRobot {
       m_autonomousCommand.cancel();
     }
 
-
   }
 
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
 
-    // System.out.println(DrivetrainSubsystem.navX.getPitch());
-    // System.out.println(DrivetrainSubsystem.navX.getYaw());
-    // System.out.println(DrivetrainSubsystem.navX.getRoll());
+    System.out.println(DrivetrainSubsystem.navX.getPitch());
+    System.out.println(DrivetrainSubsystem.navX.getYaw());
+    System.out.println(DrivetrainSubsystem.navX.getRoll());
 
-    // SmartDashboard.putNumber("Gryoscope Pitch Value", DrivetrainSubsystem.navX.getPitch());
-    // SmartDashboard.putNumber("Gryoscope Yaw Value", DrivetrainSubsystem.navX.getYaw());
-    // SmartDashboard.putNumber("Gryoscope Roll Value", DrivetrainSubsystem.navX.getRoll());
+    SmartDashboard.putNumber("Gryoscope Pitch Value", DrivetrainSubsystem.navX.getPitch());
+    SmartDashboard.putNumber("Gryoscope Yaw Value", DrivetrainSubsystem.navX.getYaw());
+    SmartDashboard.putNumber("Gryoscope Roll Value", DrivetrainSubsystem.navX.getRoll());
+
 
   }
 

@@ -41,6 +41,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
   MotorControllerGroup leftControllerGroup = new MotorControllerGroup(leftFrontMotor, leftBackMotor);
   MotorControllerGroup rightControllerGroup = new MotorControllerGroup(rightFrontMotor, rightBackMotor);
 
+  DifferentialDrive differentialDrive = new DifferentialDrive(leftControllerGroup, rightControllerGroup);
+
+  public final static AHRS navX = new AHRS(SPI.Port.kMXP);
+  private final DifferentialDriveOdometry m_odometry;
+
   /** Creates a new ExampleSubsystem. */
   public DrivetrainSubsystem() {
     leftFrontMotor.restoreFactoryDefaults();
@@ -52,6 +57,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
     rightEncoder.setPosition(0);
     // zeros out the motors and encoders - J
 
+    rightEncoder.setPositionConversionFactor(DriveTrainConstants.kLinearDistanceConversionFactor);
+    leftEncoder.setPositionConversionFactor(DriveTrainConstants.kLinearDistanceConversionFactor);
+    rightEncoder.setVelocityConversionFactor(DriveTrainConstants.kLinearDistanceConversionFactor / 60);
+    leftEncoder.setVelocityConversionFactor(DriveTrainConstants.kLinearDistanceConversionFactor / 60);
+
     leftBackMotor.follow(leftFrontMotor);
     rightBackMotor.follow(rightFrontMotor);
     // gets the back motors to do the same thing as the front motors - J
@@ -60,13 +70,112 @@ public class DrivetrainSubsystem extends SubsystemBase {
     leftControllerGroup.setInverted(true);
     // inverts the right motors so both sides spin in the same direction - J
 
+    navX.reset();
+    navX.calibrate();
+    resetEncoders();
+
   }
+
+  public void setBreakMode() {
+    leftBackMotor.setIdleMode(IdleMode.kBrake);
+    leftFrontMotor.setIdleMode(IdleMode.kBrake);
+    rightFrontMotor.setIdleMode(IdleMode.kBrake);
+    rightBackMotor.setIdleMode(IdleMode.kBrake);
+  }
+
+  public void setCoastMode() {
+    leftBackMotor.setIdleMode(IdleMode.kCoast);
+    leftFrontMotor.setIdleMode(IdleMode.kCoast);
+    rightFrontMotor.setIdleMode(IdleMode.kCoast);
+    rightBackMotor.setIdleMode(IdleMode.kCoast);
+  }
+
+  public void resetEncoders() {
+    rightEncoder.setPosition(0);
+    leftEncoder.setPosition(0);
+  }
+
+  public void arcadeDrive(double fwd, double rot) {
+    differentialDrive.arcadeDrive(fwd, rot);
+  }
+
+  public double getRightEncoderPosition() {
+    return -rightEncoder.getPosition();
+  }
+
+  public double getLeftEncoderPosition() {
+    return leftEncoder.getPosition();
+  }
+
+  public double getRightEncoderVelocity() {
+    return -rightEncoder.getVelocity();
+  }
+
+  public double getLeftEncoderVelocity() {
+    return leftEncoder.getVelocity();
+  }
+
+  public double getTurnRate() {
+    return -navX.getRate();
+  }
+
+  public static double getHeading() {
+    return navX.getRotation2d().getDegrees();
+  }
+
+  public Pose2d getPose() {
+    return m_odometry.getPoseMeters();
+  }
+
+  public void resetOdometry(Pose2d pose) {
+    resetEncoders();
+    m_odometry.resetPosition(navX.getRotation2d(), 0, 0, pose);
+  }
+
+  public DifferentialDriveWheelSpeeds getWheelSpeeds() {
+    return new DifferentialDriveWheelSpeeds(getLeftEncoderVelocity(), getRightEncoderVelocity());
+  }
+
+  public void tankDriveVolts(double leftVolts, double rightVolts) {
+    leftControllerGroup.setVoltage(leftVolts);
+    rightControllerGroup.setVoltage(rightVolts);
+    differentialDrive.feed();
+  }
+
+  public double getAverageEncoderDistance() {
+    return ((getLeftEncoderPosition() + getRightEncoderPosition()) / 2.0);
+  }
+
+  public RelativeEncoder getLeftEncoder() {
+    return leftEncoder;
+  }
+
+  public RelativeEncoder getRightEncoder() {
+    return rightEncoder;
+  }
+
+  public void setMaxOutput(double maxOutput) {
+    differentialDrive.setMaxOutput(maxOutput);
+  }
+
+  public static void zeroHeading() {
+    navX.calibrate();
+    navX.reset();
+  }
+
+  public Gyro getGyro() {
+    return navX;
+  }
+
 
   @Override
   public void periodic() {
 
     // This method will be called once per scheduler run
 
+    SmartDashboard.putNumber("Left encoder value meters", getLeftEncoderPosition());
+    SmartDashboard.putNumber("RIGHT encoder value meters", getRightEncoderPosition());
+    SmartDashboard.putNumber("Gyro heading", getHeading());
   }
 
 }
